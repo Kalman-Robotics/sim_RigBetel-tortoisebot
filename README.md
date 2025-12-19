@@ -2,9 +2,19 @@
 
 Esta es una simulación dockerizada que permite al usuario tener un entorno listo para usar.
 
+![robot](pictures/results.png)
+
+- [tortoisebot](#tortoisebot)
+  - [Pasos:](#pasos)
+  - [Referencias:](#referencias)
+
+
 ## Pasos:
 
-### 1. Dirígete al directorio donde se encuentra el archivo docker-compose y ejecuta el siguiente comando:
+> [!NOTE] 
+> Todos los siguientes pasos pueden ser obviados si se utiliza **DevContainer** en VSCode.
+
+**1. Dirígete al directorio donde se encuentra el archivo docker-compose y ejecuta el siguiente comando:**
 ```
 cd <PATH_TO_REPO>/sim_tortoisebot
 sudo docker-compose -f docker-compose-ros2.yml up --build
@@ -16,7 +26,7 @@ Si lo haces por primera vez, tomará un tiempo descargar todos los recursos nece
 > tortoisebot_development_container | ----------SETUP COMPLETE----------
 > ```
 
-### 2. Cuando no lo haces por primera vez, es posible que obtengas un error. Soluciona el problema con el siguiente comando:
+**2. Cuando no lo haces por primera vez, es posible que obtengas un error. Soluciona el problema con el siguiente comando:**
 
 <details closed>
 <summary>Ejemplo de error</summary>
@@ -56,7 +66,7 @@ KeyError: 'ContainerConfig'
 docker container prune -f # remove all containers
 ```
 
-### 3. Abre una nueva terminal y ejecuta el siguiente comando para acceder al contenedor:
+**3. Abre una nueva terminal y ejecuta el siguiente comando para acceder al contenedor:**
 ```
 docker exec -it tortoisebot_development_container /bin/bash
 ```
