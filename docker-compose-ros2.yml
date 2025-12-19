@@ -1,0 +1,28 @@
+version: '3.7'
+services:
+
+  development_server:
+    hostname: development
+    build:
+      context: .
+      dockerfile: ros2_docker
+      args:
+        SIMULATOR: classic
+        ROS_DISTRO: humble
+    container_name: tortoisebot_development_container
+    environment:
+      - DISPLAY=${DISPLAY}
+      - QT_X11_NO_MITSHM=1 # disable MIT-SHM to improve X11 applications
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - ./.devcontainer/.vscode:/ros2_ws/.vscode:ro
+      - ./volume:/ros2_ws/src
+      - ./README.md:/ros2_ws/README.md      
+      - ./tortoisebot:/ros2_ws/src/tortoisebot
+    networks:
+      ros2_network:
+    # command: tail -f /dev/null
+    command: /bin/bash -c "/docker_commands/setup.sh && tail -f /dev/null"
+
+networks:
+  ros2_network:

@@ -1,0 +1,105 @@
+# This Docker image will contain everything
+# necessary for starting the ROS2 simulation.
+
+# Start from a configurable ROS 2 base image
+ARG ROS_DISTRO=iron
+FROM osrf/ros:${ROS_DISTRO}-desktop
+
+# Choose simulator: "classic", "ignition" or "sim"
+ARG SIMULATOR=ignition
+
+# Log ROS version and simulator in use (with colored output)
+RUN echo -e "\033[1;36mROS_DISTRO: ${ROS_DISTRO}\033[0m" && \
+    echo -e "\033[1;35mSIMULATOR: ${SIMULATOR}\033[0m"
+
+# https://github.com/osrf/docker_images/issues/807
+# -----------------------------------------------------
+# Remove old ROS 2 apt sources and keyrings
+RUN rm -f /etc/apt/sources.list.d/ros2-latest.list \
+    && rm -f /usr/share/keyrings/ros2-latest-archive-keyring.gpg
+
+# Install ca-certificates and curl for fetching the new key
+RUN apt-get update && apt-get install -y ca-certificates curl
+
+# Install the new ROS 2 apt source package
+RUN export ROS_APT_SOURCE_VERSION=$(curl -s https://api.github.com/repos/ros-infrastructure/ros-apt-source/releases/latest | grep -F "tag_name" | awk -F\" '{print $4}') ;\
+    curl -L -s -o /tmp/ros2-apt-source.deb "https://github.com/ros-infrastructure/ros-apt-source/releases/download/${ROS_APT_SOURCE_VERSION}/ros2-apt-source_${ROS_APT_SOURCE_VERSION}.$(. /etc/os-release && echo $VERSION_CODENAME)_all.deb" \
+    && apt-get update \
+    && apt-get install -y /tmp/ros2-apt-source.deb \
+    && rm -f /tmp/ros2-apt-source.deb
+# -----------------------------------------------------
+
+# Install necessary packages
+RUN apt-get update && apt-get install -y \
+    git \
+    build-essential \
+    python3-colcon-common-extensions \
+    python3-rosdep \
+    python3-rosinstall-generator \
+    python3-vcstool \
+    wget \
+    mesa-utils \
+    libgl1-mesa-glx \
+    libglu1-mesa \
+    libgl1-mesa-dri \
+    libglvnd-dev \
+    libglvnd0 \
+    ros-${ROS_DISTRO}-teleop-twist-keyboard
+# install simulator and control dependencies
+RUN if [ "$SIMULATOR" = "classic" ]; then \
+        apt-get update && apt-get install -y \
+        ros-${ROS_DISTRO}-ros2-control \
+        ros-${ROS_DISTRO}-ros2-controllers \
+        ros-${ROS_DISTRO}-gazebo-ros2-control \
+        ros-${ROS_DISTRO}-gazebo-ros-pkgs \
+        ros-${ROS_DISTRO}-gazebo-plugins; \
+    elif [ "$SIMULATOR" = "ignition" ]; then \
+        apt-get update && apt-get install -y \
+        ros-${ROS_DISTRO}-ros2-control \
+        ros-${ROS_DISTRO}-ros2-controllers \          
+        ros-${ROS_DISTRO}-ros-ign-gazebo \
+        ros-${ROS_DISTRO}-ign-ros2-control \
+        ros-${ROS_DISTRO}-ros-ign-bridge; \
+    elif [ "$SIMULATOR" = "sim" ]; then \
+        curl https://packages.osrfoundation.org/gazebo.gpg --output /usr/share/keyrings/pkgs-osrf-archive-keyring.gpg && \
+        echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/pkgs-osrf-archive-keyring.gpg] http://packages.osrfoundation.org/gazebo/ubuntu-stable $(lsb_release -cs) main" | \
+        tee /etc/apt/sources.list.d/gazebo-stable.list > /dev/null && \
+        apt-get update && \    
+        apt-get install -y \
+        ros-${ROS_DISTRO}-ros2-control \
+        ros-${ROS_DISTRO}-ros2-controllers \        
+        gz-garden \
+        ros-${ROS_DISTRO}-gz-ros2-control \
+        ros-${ROS_DISTRO}-ros-gz-bridge; \
+    else \
+        echo "Unknown simulator: $SIMULATOR"; \
+        exit 1; \
+    fi
+# other dependencies
+# RUN apt-get update && apt-get install -y ros-${ROS_DISTRO}-pkg
+
+# Enable color support in bash
+RUN echo "export TERM=xterm-256color" >> /root/.bashrc \
+    && echo "alias ls='ls --color=auto'" >> /root/.bashrc \
+    && echo "PS1='\[\e[1;32m\]\u@\h:\[\e[1;34m\]\w\$ \[\e[0m\]'" >> /root/.bashrc
+
+# Create an overlay Colcon workspace
+RUN /bin/bash -c "source /opt/ros/${ROS_DISTRO}/setup.bash \
+    && mkdir -p /ros2_ws/src \
+    && cd /ros2_ws \
+    && colcon build --symlink-install"
+COPY /docker_commands/ /docker_commands/
+RUN chmod -R 777 /docker_commands
+
+# Build the workspace
+RUN /bin/bash -c "source /opt/ros/${ROS_DISTRO}/setup.bash \
+    && cd /ros2_ws \
+    && colcon build --symlink-install \
+    && source /ros2_ws/install/setup.bash \
+    && echo 'source /ros2_ws/install/setup.bash' >> ~/.bashrc"
+
+# Set up the work directory
+WORKDIR /ros2_ws
+
+# HELP when you want to ensure a package exists in a ROS version
+# apt-cache search ros-humble-PKG
