@@ -10,6 +10,7 @@
   <license>MIT</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
+  <build_depend>ydlidar_sdk</build_depend>
 
   <build_depend>rclcpp</build_depend>
   <build_depend>sensor_msgs</build_depend>
