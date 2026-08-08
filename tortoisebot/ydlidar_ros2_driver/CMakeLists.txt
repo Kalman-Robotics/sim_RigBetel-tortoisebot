@@ -32,7 +32,10 @@ include_directories(
   ${YDLIDAR_SDK_INCLUDE_DIRS})
 
 #link library directories
-link_directories(${YDLIDAR_SDK_LIBRARY_DIRS})
+# El Config.cmake instalado del SDK deja YDLIDAR_SDK_LIBRARY_DIRS vacio;
+# la libreria queda dos niveles arriba del directorio de configuracion.
+get_filename_component(YDLIDAR_SDK_LIB_DIR "${ydlidar_sdk_DIR}/../.." ABSOLUTE)
+link_directories(${YDLIDAR_SDK_LIBRARY_DIRS} ${YDLIDAR_SDK_LIB_DIR})
 
 #---------------------------------------------------------------------------------------
 # generate excutable and add libraries
